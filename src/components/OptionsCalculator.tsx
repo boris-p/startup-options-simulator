@@ -15,7 +15,14 @@ import {
 import type { OptionsInput, FundingRound, DilutionRound, PreferredRound } from '@/types/options';
 import { DEFAULT_INPUTS, TYPICAL_ROUND_AMOUNTS, OPPORTUNITY_COST_DEFAULTS } from '@/lib/defaults';
 import { calculateAllResultsWithFundingRounds, fundingRoundsToPreferredRounds } from '@/lib/calculations';
-import { Trash2 } from 'lucide-react';
+import { Trash2, Download, Upload, FileUp } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
 
 const STORAGE_KEY = 'options-calculator-state';
 
@@ -185,6 +192,9 @@ export function OptionsCalculator() {
   const [taxInfoExpanded, setTaxInfoExpanded] = useState(initialState.taxInfoExpanded);
   const [taxInfoAdvanced, setTaxInfoAdvanced] = useState(initialState.taxInfoAdvanced);
   const [roundModelingAdvanced, setRoundModelingAdvanced] = useState(initialState.roundModelingAdvanced);
+  const [importModalOpen, setImportModalOpen] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const [importError, setImportError] = useState<string | null>(null);
 
   // Save to localStorage whenever state changes
   useEffect(() => {
@@ -218,6 +228,84 @@ export function OptionsCalculator() {
     clearStorage();
   };
 
+  const handleExport = () => {
+    const state: StoredState = {
+      inputs,
+      fundingRounds,
+      timeHorizon,
+      alternativeRate,
+      customExitValuation,
+      includeOpportunityCost,
+      includeTaxInCost,
+      showFormula,
+      taxInfoExpanded,
+      taxInfoAdvanced,
+      roundModelingAdvanced,
+    };
+    const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'options-calculator.json';
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const processImportFile = (file: File) => {
+    setImportError(null);
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const parsed = JSON.parse(event.target?.result as string) as StoredState;
+        if (isValidInputs(parsed.inputs)) {
+          setInputs(parsed.inputs);
+          setFundingRounds(parsed.fundingRounds ?? []);
+          setTimeHorizon(parsed.timeHorizon ?? OPPORTUNITY_COST_DEFAULTS.timeHorizonYears);
+          setAlternativeRate(parsed.alternativeRate ?? OPPORTUNITY_COST_DEFAULTS.alternativeReturnRate);
+          setCustomExitValuation(parsed.customExitValuation ?? 1_000_000_000);
+          setIncludeOpportunityCost(parsed.includeOpportunityCost ?? true);
+          setIncludeTaxInCost(parsed.includeTaxInCost ?? false);
+          setShowFormula(parsed.showFormula ?? false);
+          setTaxInfoExpanded(parsed.taxInfoExpanded ?? false);
+          setTaxInfoAdvanced(parsed.taxInfoAdvanced ?? false);
+          setRoundModelingAdvanced(parsed.roundModelingAdvanced ?? false);
+          setImportModalOpen(false);
+        } else {
+          setImportError('Invalid file format: missing or invalid inputs');
+        }
+      } catch {
+        setImportError('Failed to parse JSON file');
+      }
+    };
+    reader.readAsText(file);
+  };
+
+  const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) processImportFile(file);
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    const file = e.dataTransfer.files[0];
+    if (file && file.type === 'application/json') {
+      processImportFile(file);
+    } else {
+      setImportError('Please drop a JSON file');
+    }
+  };
+
   const results = useMemo(
     () => calculateAllResultsWithFundingRounds(inputs, fundingRounds),
     [inputs, fundingRounds]
@@ -246,21 +334,53 @@ export function OptionsCalculator() {
         <p className="text-sm text-muted-foreground">
           Should you exercise your startup options?
         </p>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <button
-              type="button"
-              onClick={handleReset}
-              className="absolute right-0 top-0 p-1.5 text-muted-foreground hover:text-destructive transition-colors"
-              aria-label="Reset all values"
-            >
-              <Trash2 className="h-4 w-4" />
-            </button>
-          </TooltipTrigger>
-          <TooltipContent side="left">
-            <p>Reset all values to defaults</p>
-          </TooltipContent>
-        </Tooltip>
+        <div className="absolute right-0 top-0 flex gap-1">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                type="button"
+                onClick={() => { setImportModalOpen(true); setImportError(null); }}
+                className="p-1.5 text-muted-foreground hover:text-foreground transition-colors"
+                aria-label="Import values from JSON"
+              >
+                <Upload className="h-4 w-4" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom">
+              <p>Import from JSON file</p>
+            </TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                type="button"
+                onClick={handleExport}
+                className="p-1.5 text-muted-foreground hover:text-foreground transition-colors"
+                aria-label="Export values to JSON"
+              >
+                <Download className="h-4 w-4" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom">
+              <p>Export to JSON file</p>
+            </TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                type="button"
+                onClick={handleReset}
+                className="p-1.5 text-muted-foreground hover:text-destructive transition-colors"
+                aria-label="Reset all values"
+              >
+                <Trash2 className="h-4 w-4" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="left">
+              <p>Reset all values to defaults</p>
+            </TooltipContent>
+          </Tooltip>
+        </div>
       </div>
 
       {/* Main content - two columns */}
@@ -351,6 +471,50 @@ export function OptionsCalculator() {
       {/* References */}
       <References />
     </div>
+
+    {/* Import Modal */}
+    <Dialog open={importModalOpen} onOpenChange={setImportModalOpen}>
+      <DialogContent className="sm:max-w-sm p-4">
+        <DialogHeader className="space-y-1">
+          <DialogTitle className="text-base">Import Configuration</DialogTitle>
+          <DialogDescription className="text-xs">
+            Restore calculator values from a JSON file.
+          </DialogDescription>
+        </DialogHeader>
+        <div
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
+          className={`
+            mt-2 border border-dashed rounded-md p-6 text-center transition-all cursor-pointer
+            ${isDragging
+              ? 'border-primary bg-primary/5 scale-[1.02]'
+              : 'border-border hover:border-muted-foreground/50 hover:bg-muted/30'}
+          `}
+          onClick={() => document.getElementById('file-input')?.click()}
+        >
+          <div className={`transition-transform ${isDragging ? 'scale-110' : ''}`}>
+            <FileUp className="h-8 w-8 mx-auto mb-2 text-muted-foreground/70" />
+          </div>
+          <p className="text-xs font-medium text-foreground/80">
+            {isDragging ? 'Drop to import' : 'Drop JSON file here'}
+          </p>
+          <p className="text-[11px] text-muted-foreground mt-0.5">
+            or click to browse
+          </p>
+          <input
+            id="file-input"
+            type="file"
+            accept=".json,application/json"
+            onChange={handleFileInputChange}
+            className="hidden"
+          />
+        </div>
+        {importError && (
+          <p className="text-xs text-destructive mt-1.5">{importError}</p>
+        )}
+      </DialogContent>
+    </Dialog>
     </TooltipProvider>
   );
 }
