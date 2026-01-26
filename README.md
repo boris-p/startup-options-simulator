@@ -2,6 +2,8 @@
 
 A free, open-source calculator to help startup employees understand their equity compensation. Model exercise costs, taxes (ISO vs NSO), dilution from funding rounds, liquidation preferences, and probability-weighted expected value.
 
+**[Try it live →](https://boris-p.github.io/startup-options-calculator/)**
+
 ## Purpose
 
 This calculator helps you develop intuition about startup equity by:
