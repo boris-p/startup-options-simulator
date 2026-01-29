@@ -104,6 +104,38 @@ export const REFERENCES: Reference[] = [
     date: '2024',
     url: 'https://www.irs.gov/taxtopics/tc556',
   },
+  {
+    id: 'cooley-q4-2024',
+    shortName: 'Cooley',
+    title: 'Q4 2024 Venture Financing Report',
+    publisher: 'Cooley LLP',
+    date: '2025',
+    url: 'https://www.cooley.com/news/insight/2025/2025-02-07-q4-2024-venture-financing-report',
+  },
+  {
+    id: 'spdload-failure-rates',
+    shortName: 'SPDLoad',
+    title: 'Startup Failure Rate Statistics by Industry and Stage',
+    publisher: 'SPDLoad',
+    date: '2025',
+    url: 'https://spdload.com/blog/startup-success-rate/',
+  },
+  {
+    id: 'yc-exits-2025',
+    shortName: 'YC Exits',
+    title: 'On YC Startup Exits (2025 Update)',
+    publisher: 'Jared Heyman / Medium',
+    date: '2025',
+    url: 'https://jaredheyman.medium.com/on-yc-startup-exits-2025-update-c6017e8e526e',
+  },
+  {
+    id: 'microventures-exit-timing',
+    shortName: 'MicroVentures',
+    title: 'Time to Exit: Are Startups Getting Older?',
+    publisher: 'MicroVentures',
+    date: '2024',
+    url: 'https://microventures.com/time-to-exit-are-startups-getting-older',
+  },
 ];
 
 export function getReferenceById(id: string): Reference | undefined {

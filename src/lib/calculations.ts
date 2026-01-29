@@ -11,8 +11,9 @@ import type {
   PreferredRound,
   FundingRound,
   WaterfallResult,
+  CompanyStage,
 } from '@/types/options';
-import { DEFAULT_EXIT_SCENARIOS } from './defaults';
+import { DEFAULT_EXIT_SCENARIOS, STAGE_EXIT_ADJUSTMENTS } from './defaults';
 
 // Tax constants
 const AMT_RATE = 0.28; // Simplified AMT rate for ISO spread
@@ -264,10 +265,15 @@ export function calculateAllResults(
 
 /**
  * Calculate all results using unified FundingRounds
+ *
+ * @param inputs - User inputs (options, FMV, etc.)
+ * @param fundingRounds - Funding rounds for dilution and liquidation preference modeling
+ * @param exitScenarios - Optional stage-adjusted exit scenarios (defaults to DEFAULT_EXIT_SCENARIOS)
  */
 export function calculateAllResultsWithFundingRounds(
   inputs: OptionsInput,
-  fundingRounds: FundingRound[]
+  fundingRounds: FundingRound[],
+  exitScenarios?: ExitScenario[]
 ): CalculatedResults {
   const exerciseCost = calculateExerciseCost(
     inputs.numberOfOptions,
@@ -290,10 +296,12 @@ export function calculateAllResultsWithFundingRounds(
   );
   const totalDilutionPercent = calculateTotalDilutionFromFundingRounds(fundingRounds);
 
+  // Use provided exit scenarios (stage-adjusted) or fall back to defaults
   const expectedValue = calculateExpectedValue(
     ownershipAfterDilution,
     inputs.companyValuation,
-    exerciseCost
+    exerciseCost,
+    exitScenarios
   );
 
   // Calculate tax implications
@@ -740,4 +748,100 @@ export function calculateOpportunityCostComparison(
     finalAlternativeValue: finalPoint.alternativeValue,
     finalOptionsExpectedValue: finalPoint.optionsExpectedValue,
   };
+}
+
+/**
+ * Derive company stage from funding rounds
+ * Uses the most recent (last) round to determine stage
+ *
+ * If no rounds: assume Seed (reasonable default for someone using this calculator)
+ * Note: "Pre-Seed" would be more conservative but most users with options
+ * are likely at least seed-stage
+ *
+ * Sources for stage definitions:
+ * - SPDLoad Startup Failure Statistics 2025
+ * - Embroker Startup Statistics
+ */
+export function deriveCompanyStage(fundingRounds: FundingRound[]): CompanyStage {
+  if (fundingRounds.length === 0) {
+    return 'Seed';
+  }
+
+  const lastRound = fundingRounds[fundingRounds.length - 1];
+  const name = lastRound.name.toLowerCase();
+
+  // Map round names to stages
+  if (name.includes('series c') || name.includes('series d') || name.includes('d+')) {
+    return 'Series C+';
+  }
+  if (name.includes('series b')) {
+    return 'Series B';
+  }
+  if (name.includes('series a')) {
+    return 'Series A';
+  }
+  if (name.includes('seed') || name.includes('pre-seed')) {
+    return 'Seed';
+  }
+
+  // Default to Seed for unknown round names (bridge, extension, etc.)
+  return 'Seed';
+}
+
+/**
+ * Generate exit scenarios adjusted for company stage
+ *
+ * Earlier stages: higher failure rate, but if successful, higher upside potential
+ * Later stages: lower failure rate, but returns more predictable/lower upside
+ *
+ * The adjustment works by:
+ * 1. Setting failure probability based on stage (from STAGE_EXIT_ADJUSTMENTS)
+ * 2. Redistributing the "saved" failure probability to success scenarios
+ * 3. Weighting toward moderate outcomes for later stages (since unicorn potential reduced)
+ *
+ * Sources:
+ * - SPDLoad Startup Failure Statistics 2025: Stage-specific failure rates
+ * - YC Exit Data 2025: 93% of value from 8% of exits (unicorns)
+ */
+export function getStageAdjustedExitScenarios(
+  stage: CompanyStage
+): ExitScenario[] {
+  const adjustment = STAGE_EXIT_ADJUSTMENTS[stage];
+  const baseScenarios = DEFAULT_EXIT_SCENARIOS;
+
+  // Calculate how much probability to redistribute from failure to success
+  const baseFailure = baseScenarios[0].probability; // 0.75 (default failure rate)
+  const targetFailure = adjustment.failureProb;
+  const successBoost = baseFailure - targetFailure; // Positive if later stage (lower failure)
+
+  // Track total probability to ensure it sums to 1.0
+  let totalProb = 0;
+  const adjustedScenarios = baseScenarios.map((scenario, index) => {
+    if (index === 0) {
+      // Failure scenario - use stage-specific rate
+      totalProb += targetFailure;
+      return { ...scenario, probability: targetFailure };
+    }
+
+    // For success scenarios, redistribute the saved failure probability
+    // Weight toward moderate outcomes for later stages (unicorn potential lower)
+    const isUnicorn = scenario.name === 'Unicorn' || scenario.name === 'Exceptional';
+
+    // Calculate boost: unicorn scenarios get less boost at later stages
+    const boost = isUnicorn
+      ? successBoost * 0.1 * adjustment.unicornProb  // Small, stage-adjusted boost
+      : successBoost * 0.225;  // Larger boost to moderate outcomes
+
+    const newProb = scenario.probability + boost;
+    totalProb += newProb;
+    return { ...scenario, probability: newProb };
+  });
+
+  // Normalize to ensure probabilities sum to 1.0 (handle floating point errors)
+  if (Math.abs(totalProb - 1.0) > 0.001) {
+    const scale = 1.0 / totalProb;
+    return adjustedScenarios.map(s => ({ ...s, probability: s.probability * scale }));
+  }
+
+  return adjustedScenarios;
 }

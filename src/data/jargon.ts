@@ -155,6 +155,29 @@ export const JARGON: Record<string, JargonDefinition> = {
       'Growth that builds on itself over time. Each year\'s gains earn their own gains. The longer the horizon, the more powerful.\n\nFormula: Principal × (1 + rate)^years = Future Value\n$10,000 × (1.10)^10 = $25,937\n\n• Year 1: $11,000\n• Year 5: $16,105\n• Year 10: $25,937',
     category: 'analysis',
   },
+  'company-stage': {
+    term: 'Company Stage',
+    definition:
+      'The most recent funding round completed by the company. Stage affects the probability of different exit outcomes:\n\n' +
+      '• Pre-Seed/Seed: ~80% failure rate, highest unicorn potential\n' +
+      '• Series A: ~65% failure rate, strong upside potential\n' +
+      '• Series B: ~45% failure rate, more predictable\n' +
+      '• Series C+: ~20% failure rate, lower risk but less upside\n\n' +
+      'Later stages have lower failure rates because the company has already survived earlier milestones, but also lower potential returns since much growth has already occurred.\n\n' +
+      'Sources: SPDLoad Startup Statistics 2025, YC Exit Data 2025',
+    category: 'analysis',
+  },
+  'stage-adjusted-probability': {
+    term: 'Stage-Adjusted Probability',
+    definition:
+      'Exit scenario probabilities that account for company maturity. The default 75% failure rate applies to VC-backed startups overall, but varies significantly by stage:\n\n' +
+      '• 60% of startups fail between Pre-Seed and Series A\n' +
+      '• 35% of Series A companies fail before Series B\n' +
+      '• Only ~1% fail after reaching Series C\n\n' +
+      'The calculator automatically adjusts probabilities based on funding rounds you model.\n\n' +
+      'Sources: SPDLoad 2025, Embroker, Harvard Business School',
+    category: 'analysis',
+  },
 
   // Exit Scenarios
   failure: {

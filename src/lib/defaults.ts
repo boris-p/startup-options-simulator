@@ -1,4 +1,4 @@
-import type { DilutionRound, ExitScenario, FundingRound, OptionsInput, PreferredRound } from '@/types/options';
+import type { CompanyStage, DilutionRound, ExitScenario, FundingRound, OptionsInput, PreferredRound } from '@/types/options';
 
 /**
  * Default dilution percentages by funding round
@@ -18,6 +18,59 @@ export const DILUTION_DEFAULTS: Record<string, number> = {
 export function getDefaultDilution(roundName: string): number {
   return DILUTION_DEFAULTS[roundName] ?? 15;
 }
+
+/**
+ * Company stages for stage-aware probability calculations
+ */
+export const COMPANY_STAGES: CompanyStage[] = [
+  'Pre-Seed',
+  'Seed',
+  'Series A',
+  'Series B',
+  'Series C+',
+];
+
+/**
+ * Stage-specific failure rates (cumulative probability of failure from current stage to exit)
+ *
+ * Sources:
+ * - SPDLoad Startup Failure Statistics 2025: https://spdload.com/blog/startup-success-rate/
+ *   - 60% of startups fail between pre-seed and Series A
+ *   - 35% of Series A startups fail before Series B
+ *   - Only 1% of startups fail after Series C
+ * - Embroker Startup Statistics: https://www.embroker.com/blog/startup-statistics/
+ *   - 75% of venture-backed startups fail (Harvard)
+ * - YC Exits 2025: https://jaredheyman.medium.com/on-yc-startup-exits-2025-update-c6017e8e526e
+ *   - 93% of exit value comes from just 8% of exits (unicorns)
+ */
+export const STAGE_FAILURE_RATES: Record<CompanyStage, number> = {
+  'Pre-Seed': 0.90,  // 90% fail (60% fail before Series A alone, compounded risk)
+  'Seed': 0.80,      // 80% fail
+  'Series A': 0.65,  // 65% fail (35% fail before Series B)
+  'Series B': 0.45,  // 45% fail
+  'Series C+': 0.20, // ~20% fail (only 1% fail outright post-C, rest from market conditions)
+};
+
+/**
+ * Stage-specific exit scenario adjustments
+ *
+ * Earlier stages: higher failure rate, but higher upside potential if successful
+ * Later stages: lower failure rate, but returns more predictable/lower upside
+ *
+ * unicornProb is a multiplier applied to exceptional outcome probabilities:
+ * - Early stage: maintain full unicorn potential (1.0)
+ * - Late stage: reduced unicorn potential (0.3) since much growth already happened
+ */
+export const STAGE_EXIT_ADJUSTMENTS: Record<CompanyStage, {
+  failureProb: number;
+  unicornProb: number;
+}> = {
+  'Pre-Seed': { failureProb: 0.90, unicornProb: 1.0 },
+  'Seed': { failureProb: 0.80, unicornProb: 0.9 },
+  'Series A': { failureProb: 0.65, unicornProb: 0.7 },
+  'Series B': { failureProb: 0.45, unicornProb: 0.5 },
+  'Series C+': { failureProb: 0.20, unicornProb: 0.3 },
+};
 
 /**
  * Available funding round options

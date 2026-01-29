@@ -14,7 +14,12 @@ import {
 } from '@/components/ui/tooltip';
 import type { OptionsInput, FundingRound, DilutionRound, PreferredRound } from '@/types/options';
 import { DEFAULT_INPUTS, TYPICAL_ROUND_AMOUNTS, OPPORTUNITY_COST_DEFAULTS } from '@/lib/defaults';
-import { calculateAllResultsWithFundingRounds, fundingRoundsToPreferredRounds } from '@/lib/calculations';
+import {
+  calculateAllResultsWithFundingRounds,
+  fundingRoundsToPreferredRounds,
+  deriveCompanyStage,
+  getStageAdjustedExitScenarios,
+} from '@/lib/calculations';
 import { Trash2, Download, Upload, FileUp } from 'lucide-react';
 import {
   Dialog,
@@ -306,9 +311,21 @@ export function OptionsCalculator() {
     }
   };
 
+  // Derive company stage from funding rounds
+  const companyStage = useMemo(
+    () => deriveCompanyStage(fundingRounds),
+    [fundingRounds]
+  );
+
+  // Get stage-adjusted exit scenarios
+  const exitScenarios = useMemo(
+    () => getStageAdjustedExitScenarios(companyStage),
+    [companyStage]
+  );
+
   const results = useMemo(
-    () => calculateAllResultsWithFundingRounds(inputs, fundingRounds),
-    [inputs, fundingRounds]
+    () => calculateAllResultsWithFundingRounds(inputs, fundingRounds, exitScenarios),
+    [inputs, fundingRounds, exitScenarios]
   );
 
   // Convert to PreferredRound[] for waterfall calculations
@@ -408,6 +425,8 @@ export function OptionsCalculator() {
             ownershipPercent={effectiveOwnership}
             companyValuation={inputs.companyValuation}
             preferredRounds={preferredRounds}
+            exitScenarios={exitScenarios}
+            companyStage={companyStage}
             timeHorizon={timeHorizon}
             onTimeHorizonChange={setTimeHorizon}
             alternativeRate={alternativeRate}

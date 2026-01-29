@@ -2,6 +2,12 @@
 
 export type OptionType = 'ISO' | 'NSO';
 
+/**
+ * Company funding stage, used to adjust exit probability estimates
+ * Derived from the most recent funding round
+ */
+export type CompanyStage = 'Pre-Seed' | 'Seed' | 'Series A' | 'Series B' | 'Series C+';
+
 export interface OptionsInput {
   numberOfOptions: number;
   strikePrice: number;

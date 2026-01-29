@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import type { CalculatedResults, PreferredRound } from '@/types/options';
+import type { CalculatedResults, PreferredRound, ExitScenario, CompanyStage } from '@/types/options';
 import {
   formatCurrency,
   formatPercent,
@@ -20,6 +20,8 @@ interface ResultsPanelProps {
   ownershipPercent: number;
   companyValuation: number;
   preferredRounds?: PreferredRound[];
+  exitScenarios?: ExitScenario[];
+  companyStage?: CompanyStage;
   timeHorizon: number;
   onTimeHorizonChange: (years: number) => void;
   alternativeRate: number;
@@ -38,6 +40,8 @@ export function ResultsPanel({
   ownershipPercent,
   companyValuation,
   preferredRounds = [],
+  exitScenarios,
+  companyStage,
   timeHorizon,
   onTimeHorizonChange,
   alternativeRate,
@@ -50,6 +54,9 @@ export function ResultsPanel({
   showFormula,
   onShowFormulaChange,
 }: ResultsPanelProps) {
+  // Use provided exit scenarios (stage-adjusted) or fall back to defaults
+  const scenarios = exitScenarios ?? DEFAULT_EXIT_SCENARIOS;
+
   const paperGainVariant =
     results.paperGain > 0 ? 'positive' : results.paperGain < 0 ? 'negative' : 'neutral';
 
@@ -62,7 +69,7 @@ export function ResultsPanel({
 
   // Calculate scenario breakdown for Expected Value tooltip
   const scenarioBreakdown = useMemo(() => {
-    return DEFAULT_EXIT_SCENARIOS.map((scenario) => {
+    return scenarios.map((scenario) => {
       const exitValue = (ownershipPercent / 100) * companyValuation * scenario.multiple;
       const weighted = scenario.probability * exitValue;
       return {
@@ -73,7 +80,7 @@ export function ResultsPanel({
         weighted,
       };
     });
-  }, [ownershipPercent, companyValuation]);
+  }, [scenarios, ownershipPercent, companyValuation]);
 
   const totalWeighted = useMemo(
     () => scenarioBreakdown.reduce((sum, s) => sum + s.weighted, 0),
@@ -132,7 +139,12 @@ export function ResultsPanel({
             <TooltipContent side="bottom" className="text-xs max-w-75">
               <p className="font-medium mb-1">Probability-weighted outcome</p>
               <p className="text-[10px] text-muted-foreground mb-1.5">
-                {ownershipPercent.toFixed(3)}% of {formatValuation(companyValuation)} (derived from options × FMV ÷ ownership)
+                {ownershipPercent.toFixed(3)}% of {formatValuation(companyValuation)}
+                {companyStage && (
+                  <span className="block mt-0.5">
+                    Stage: <span className="font-medium">{companyStage}</span> (adjusts failure probability)
+                  </span>
+                )}
               </p>
               <div className="text-muted-foreground space-y-0.5 text-[10px]">
                 {scenarioBreakdown.map((s) => (
