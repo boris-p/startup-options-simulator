@@ -1,8 +1,8 @@
 {
-  "name": "startup-options-calculator",
+  "name": "startup-options-simulator",
   "private": true,
   "version": "1.0.0",
-  "description": "Calculator for startup employees to model stock option exercise costs, taxes (ISO vs NSO), dilution, liquidation preferences, and expected value",
+  "description": "Simulator for startup employees to model stock option exercise costs, taxes (ISO vs NSO), dilution, liquidation preferences, and expected value",
   "license": "MIT",
   "type": "module",
   "scripts": {

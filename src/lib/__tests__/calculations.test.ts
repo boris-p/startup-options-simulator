@@ -20,8 +20,11 @@ import {
   formatPercent,
   formatOwnership,
   formatMultiple,
+  validateExitScenarioProbabilities,
+  customScenariosToExitScenarios,
+  roundPercentages,
 } from '../calculations';
-import type { DilutionRound, ExitScenario, OptionsInput } from '@/types/options';
+import type { DilutionRound, ExitScenario, CustomExitScenario, OptionsInput } from '@/types/options';
 
 describe('deriveValuationFromOwnership', () => {
   it('derives valuation correctly', () => {
@@ -429,5 +432,148 @@ describe('formatMultiple', () => {
 
   it('handles infinity', () => {
     expect(formatMultiple(Infinity)).toBe('—');
+  });
+});
+
+describe('validateExitScenarioProbabilities', () => {
+  it('returns valid for probabilities summing to exactly 1.0', () => {
+    const scenarios: ExitScenario[] = [
+      { name: 'Fail', multiple: 0, probability: 0.7 },
+      { name: 'Success', multiple: 10, probability: 0.3 },
+    ];
+    const result = validateExitScenarioProbabilities(scenarios);
+    expect(result.isValid).toBe(true);
+    expect(result.total).toBeCloseTo(1.0);
+  });
+
+  it('returns valid within tolerance (0.9995)', () => {
+    const scenarios: ExitScenario[] = [
+      { name: 'Fail', multiple: 0, probability: 0.6995 },
+      { name: 'Success', multiple: 10, probability: 0.3 },
+    ];
+    const result = validateExitScenarioProbabilities(scenarios);
+    expect(result.isValid).toBe(true);
+  });
+
+  it('returns valid within tolerance (1.0009)', () => {
+    const scenarios: ExitScenario[] = [
+      { name: 'Fail', multiple: 0, probability: 0.7009 },
+      { name: 'Success', multiple: 10, probability: 0.3 },
+    ];
+    const result = validateExitScenarioProbabilities(scenarios);
+    expect(result.isValid).toBe(true);
+  });
+
+  it('returns invalid when sum exceeds tolerance (1.1)', () => {
+    const scenarios: ExitScenario[] = [
+      { name: 'Fail', multiple: 0, probability: 0.8 },
+      { name: 'Success', multiple: 10, probability: 0.3 },
+    ];
+    const result = validateExitScenarioProbabilities(scenarios);
+    expect(result.isValid).toBe(false);
+    expect(result.total).toBeCloseTo(1.1);
+  });
+
+  it('returns invalid when sum is too low (0.5)', () => {
+    const scenarios: ExitScenario[] = [
+      { name: 'Fail', multiple: 0, probability: 0.3 },
+      { name: 'Success', multiple: 10, probability: 0.2 },
+    ];
+    const result = validateExitScenarioProbabilities(scenarios);
+    expect(result.isValid).toBe(false);
+    expect(result.total).toBeCloseTo(0.5);
+  });
+
+  it('returns invalid for empty scenarios', () => {
+    const result = validateExitScenarioProbabilities([]);
+    expect(result.isValid).toBe(false);
+    expect(result.total).toBe(0);
+  });
+
+  it('returns invalid for all-zero probabilities', () => {
+    const scenarios: ExitScenario[] = [
+      { name: 'Fail', multiple: 0, probability: 0 },
+      { name: 'Success', multiple: 10, probability: 0 },
+    ];
+    const result = validateExitScenarioProbabilities(scenarios);
+    expect(result.isValid).toBe(false);
+    expect(result.total).toBe(0);
+  });
+
+  it('validates DEFAULT_EXIT_SCENARIOS sum to 1.0', () => {
+    const scenarios: ExitScenario[] = [
+      { name: 'Failure', multiple: 0, probability: 0.75 },
+      { name: 'Acqui-hire', multiple: 1.5, probability: 0.10 },
+      { name: 'Moderate', multiple: 3, probability: 0.08 },
+      { name: 'Strong', multiple: 5, probability: 0.04 },
+      { name: 'Exceptional', multiple: 10, probability: 0.025 },
+      { name: 'Unicorn', multiple: 20, probability: 0.005 },
+    ];
+    const result = validateExitScenarioProbabilities(scenarios);
+    expect(result.isValid).toBe(true);
+  });
+});
+
+describe('customScenariosToExitScenarios', () => {
+  it('converts exit values to multiples using company valuation', () => {
+    const custom: CustomExitScenario[] = [
+      { name: 'Small', exitValue: 100_000_000, probability: 0.5 },
+      { name: 'Big', exitValue: 500_000_000, probability: 0.5 },
+    ];
+    const result = customScenariosToExitScenarios(custom, 50_000_000);
+    expect(result).toHaveLength(2);
+    expect(result[0].multiple).toBe(2); // 100M / 50M = 2x
+    expect(result[0].name).toBe('Small');
+    expect(result[0].probability).toBe(0.5);
+    expect(result[1].multiple).toBe(10); // 500M / 50M = 10x
+  });
+
+  it('handles zero company valuation', () => {
+    const custom: CustomExitScenario[] = [
+      { name: 'Test', exitValue: 100_000_000, probability: 1.0 },
+    ];
+    const result = customScenariosToExitScenarios(custom, 0);
+    expect(result[0].multiple).toBe(0);
+  });
+
+  it('generates name from exit value when name is empty', () => {
+    const custom: CustomExitScenario[] = [
+      { name: '', exitValue: 1_000_000_000, probability: 1.0 },
+    ];
+    const result = customScenariosToExitScenarios(custom, 50_000_000);
+    expect(result[0].name).toBe('$1000.0M');
+  });
+
+  it('handles empty array', () => {
+    const result = customScenariosToExitScenarios([], 50_000_000);
+    expect(result).toHaveLength(0);
+  });
+});
+
+describe('roundPercentages', () => {
+  it('rounds so values sum to exactly 100', () => {
+    // Seed-adjusted scenario probabilities that naively round to 99.9%
+    const values = [79.38, 8.83, 6.83, 2.93, 2.03, 0.005];
+    const rounded = roundPercentages(values);
+    const sum = rounded.reduce((a, b) => a + b, 0);
+    expect(Math.round(sum * 10) / 10).toBe(100);
+  });
+
+  it('preserves already-round values', () => {
+    const values = [75, 10, 8, 4, 2.5, 0.5];
+    const rounded = roundPercentages(values);
+    expect(rounded).toEqual([75, 10, 8, 4, 2.5, 0.5]);
+  });
+
+  it('distributes remainder to largest remainders first', () => {
+    // 33.33... each → two get 33.3, one gets 33.4
+    const values = [100 / 3, 100 / 3, 100 / 3];
+    const rounded = roundPercentages(values);
+    expect(rounded.reduce((a, b) => a + b, 0)).toBeCloseTo(100);
+    expect(rounded.sort()).toEqual([33.3, 33.3, 33.4]);
+  });
+
+  it('handles empty array', () => {
+    expect(roundPercentages([])).toEqual([]);
   });
 });

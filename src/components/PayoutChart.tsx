@@ -436,13 +436,13 @@ export function PayoutChart({
           <div className="flex items-center justify-between">
             <Tooltip>
               <TooltipTrigger asChild>
-                <span className="text-xs text-muted-foreground cursor-help border-b border-dotted border-muted-foreground/50">
+                <span className="text-xs text-muted-foreground cursor-help border-b border-dotted border-muted-foreground/50 transition-colors hover:text-foreground">
                   Your payout:
                 </span>
               </TooltipTrigger>
-              <TooltipContent side="left" className="text-xs max-w-[200px]">
+              <TooltipContent side="left" className="max-w-70">
                 <p className="font-medium mb-1">Payout at {formatValuation(customExitValuation)} exit</p>
-                <p className="text-muted-foreground">
+                <p className="text-muted-foreground leading-relaxed">
                   {ownershipPercent.toFixed(3)}% × {formatValuation(customExitValuation)} = {formatCurrency(customPayout)}
                 </p>
               </TooltipContent>
@@ -454,13 +454,13 @@ export function PayoutChart({
           <div className="flex items-center justify-between">
             <Tooltip>
               <TooltipTrigger asChild>
-                <span className="text-xs text-muted-foreground cursor-help border-b border-dotted border-muted-foreground/50">
+                <span className="text-xs text-muted-foreground cursor-help border-b border-dotted border-muted-foreground/50 transition-colors hover:text-foreground">
                   Profit:
                 </span>
               </TooltipTrigger>
-              <TooltipContent side="left" className="text-xs max-w-[220px]">
+              <TooltipContent side="left" className="max-w-70">
                 <p className="font-medium mb-1">Profit = Payout − Exercise Cost</p>
-                <p className="text-muted-foreground">
+                <p className="text-muted-foreground leading-relaxed">
                   {formatCurrency(customPayout)} − {formatCurrency(exerciseCost)} = {formatCurrency(customProfit)}
                 </p>
               </TooltipContent>
@@ -481,13 +481,13 @@ export function PayoutChart({
           <div className="flex items-center justify-between pt-1">
             <Tooltip>
               <TooltipTrigger asChild>
-                <span className="text-xs text-muted-foreground cursor-help border-b border-dotted border-muted-foreground/50">
+                <span className="text-xs text-muted-foreground cursor-help border-b border-dotted border-muted-foreground/50 transition-colors hover:text-foreground">
                   Include opportunity cost
                 </span>
               </TooltipTrigger>
-              <TooltipContent side="left" className="text-xs max-w-[220px]">
+              <TooltipContent side="left" className="max-w-70">
                 <p className="font-medium mb-1">Opportunity Cost Comparison</p>
-                <p className="text-muted-foreground">
+                <p className="text-muted-foreground leading-relaxed">
                   Compare your options payout against what you&apos;d have if you invested the exercise cost in an S&P 500 index fund instead.
                 </p>
               </TooltipContent>
@@ -503,13 +503,13 @@ export function PayoutChart({
             <div className="flex items-center justify-between">
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <span className="text-xs text-muted-foreground cursor-help border-b border-dotted border-muted-foreground/50">
+                  <span className="text-xs text-muted-foreground cursor-help border-b border-dotted border-muted-foreground/50 transition-colors hover:text-foreground">
                     Include tax at exercise
                   </span>
                 </TooltipTrigger>
-                <TooltipContent side="left" className="text-xs max-w-[220px]">
+                <TooltipContent side="left" className="max-w-70">
                   <p className="font-medium mb-1">Tax as Opportunity Cost</p>
-                  <p className="text-muted-foreground">
+                  <p className="text-muted-foreground leading-relaxed">
                     Add estimated tax (~{formatCurrency(estimatedTax)}) to the exercise cost. This total is what you&apos;d pay upfront and could invest elsewhere instead.
                   </p>
                 </TooltipContent>

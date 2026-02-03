@@ -5,7 +5,7 @@ import { defineConfig } from "vite"
 
 // https://vite.dev/config/
 export default defineConfig({
-  base: "/startup-options-calculator/",
+  base: "/startup-options-simulator/",
   plugins: [react(), tailwindcss()],
   resolve: {
     alias: {

@@ -258,13 +258,13 @@ export function RoundModeling({
                       <div className="flex items-center justify-between">
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <span className="text-[10px] text-muted-foreground cursor-help border-b border-dotted border-muted-foreground/50">
+                            <span className="text-[10px] text-muted-foreground cursor-help border-b border-dotted border-muted-foreground/50 transition-colors hover:text-foreground">
                               Liquidation Multiple
                             </span>
                           </TooltipTrigger>
-                          <TooltipContent side="top" className="text-xs max-w-[220px]">
+                          <TooltipContent side="top" className="max-w-70">
                             <p className="font-medium mb-1">Liquidation Preference Multiple</p>
-                            <p className="text-muted-foreground">
+                            <p className="text-muted-foreground leading-relaxed">
                               How many times their investment investors get back before common shareholders (employees) receive anything. A 1x multiple means they get their money back first; 2x means double.
                             </p>
                           </TooltipContent>
@@ -305,9 +305,9 @@ export function RoundModeling({
                             Non-Participating
                           </button>
                         </TooltipTrigger>
-                        <TooltipContent side="top" className="text-xs max-w-[220px]">
+                        <TooltipContent side="top" className="max-w-70">
                           <p className="font-medium mb-1">Non-Participating Preferred</p>
-                          <p className="text-muted-foreground">
+                          <p className="text-muted-foreground leading-relaxed">
                             Investors choose the GREATER of: their liquidation preference OR converting to common shares. Most founder-friendly.
                           </p>
                         </TooltipContent>
@@ -332,9 +332,9 @@ export function RoundModeling({
                             Participating
                           </button>
                         </TooltipTrigger>
-                        <TooltipContent side="top" className="text-xs max-w-[220px]">
+                        <TooltipContent side="top" className="max-w-70">
                           <p className="font-medium mb-1">Participating Preferred</p>
-                          <p className="text-muted-foreground">
+                          <p className="text-muted-foreground leading-relaxed">
                             Investors get BOTH: their liquidation preference AND their pro-rata share. More investor-favorable.
                           </p>
                         </TooltipContent>

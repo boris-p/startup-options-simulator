@@ -4,8 +4,10 @@
  */
 
 // Check if a line looks like a formula (contains math symbols)
+// Formulas are short (< 80 chars) - long prose lines with = or × are not formulas
 export function isFormulaLine(line: string): boolean {
-  return /[=÷×%]/.test(line) && (line.includes('=') || line.startsWith('•'));
+  if (line.startsWith('•')) return true;
+  return line.length < 80 && /[=÷×%]/.test(line) && (line.includes('=') || /[÷×]/.test(line));
 }
 
 // Render definition with support for paragraphs and formula styling

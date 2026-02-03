@@ -6,19 +6,21 @@ import { OpportunityCost } from './OpportunityCost';
 import { TaxInfo } from './TaxInfo';
 import { Glossary } from './Glossary';
 import { References } from './References';
+import { ExitScenariosEditor } from './ExitScenariosEditor';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import type { OptionsInput, FundingRound, DilutionRound, PreferredRound } from '@/types/options';
-import { DEFAULT_INPUTS, TYPICAL_ROUND_AMOUNTS, OPPORTUNITY_COST_DEFAULTS } from '@/lib/defaults';
+import type { OptionsInput, FundingRound, CustomExitScenario } from '@/types/options';
+import { DEFAULT_INPUTS, OPPORTUNITY_COST_DEFAULTS } from '@/lib/defaults';
 import {
   calculateAllResultsWithFundingRounds,
   fundingRoundsToPreferredRounds,
   deriveCompanyStage,
   getStageAdjustedExitScenarios,
+  customScenariosToExitScenarios,
 } from '@/lib/calculations';
 import { Trash2, Download, Upload, FileUp } from 'lucide-react';
 import {
@@ -29,7 +31,7 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog';
 
-const STORAGE_KEY = 'options-calculator-state';
+const STORAGE_KEY = 'options-simulator-state';
 
 interface StoredState {
   inputs: OptionsInput;
@@ -44,14 +46,7 @@ interface StoredState {
   taxInfoExpanded: boolean;
   taxInfoAdvanced: boolean;
   roundModelingAdvanced: boolean;
-}
-
-// Legacy interface for migration
-interface LegacyStoredState {
-  inputs: OptionsInput;
-  dilutionRounds?: DilutionRound[];
-  preferredRounds?: PreferredRound[];
-  fundingRounds?: FundingRound[];
+  customExitScenarios?: CustomExitScenario[] | null;
 }
 
 function isValidInputs(inputs: unknown): inputs is OptionsInput {
@@ -67,67 +62,15 @@ function isValidInputs(inputs: unknown): inputs is OptionsInput {
   );
 }
 
-// Migrate legacy dilutionRounds + preferredRounds to unified fundingRounds
-function migrateLegacyData(legacy: LegacyStoredState): FundingRound[] {
-  // If already has fundingRounds, use them
-  if (Array.isArray(legacy.fundingRounds) && legacy.fundingRounds.length > 0) {
-    return legacy.fundingRounds;
-  }
-
-  // Merge dilutionRounds and preferredRounds
-  const dilutionRounds = legacy.dilutionRounds ?? [];
-  const preferredRounds = legacy.preferredRounds ?? [];
-
-  // Create a map of round names to data
-  const roundMap = new Map<string, FundingRound>();
-
-  // Add from dilution rounds
-  for (const dr of dilutionRounds) {
-    roundMap.set(dr.name, {
-      id: dr.id,
-      name: dr.name,
-      dilutionPercent: dr.dilutionPercent,
-      amountRaised: TYPICAL_ROUND_AMOUNTS[dr.name] ?? 10_000_000,
-      liquidationMultiple: 1,
-      preferredType: 'non-participating',
-    });
-  }
-
-  // Merge from preferred rounds (override if exists)
-  for (const pr of preferredRounds) {
-    const existing = roundMap.get(pr.name);
-    if (existing) {
-      existing.amountRaised = pr.investedAmount;
-      existing.dilutionPercent = pr.ownershipPercent; // Use ownership as dilution (they're equivalent)
-      existing.liquidationMultiple = pr.liquidationMultiple;
-      existing.preferredType = pr.preferredType;
-    } else {
-      roundMap.set(pr.name, {
-        id: pr.id,
-        name: pr.name,
-        dilutionPercent: pr.ownershipPercent, // Use ownership as dilution (they're equivalent)
-        amountRaised: pr.investedAmount,
-        liquidationMultiple: pr.liquidationMultiple,
-        preferredType: pr.preferredType,
-      });
-    }
-  }
-
-  return Array.from(roundMap.values());
-}
-
 function loadFromStorage(): StoredState | null {
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored) {
-      const parsed = JSON.parse(stored) as LegacyStoredState & Partial<StoredState>;
-      // Validate the stored data
+      const parsed = JSON.parse(stored) as Partial<StoredState>;
       if (parsed && isValidInputs(parsed.inputs)) {
-        const fundingRounds = migrateLegacyData(parsed);
         return {
           inputs: parsed.inputs,
-          fundingRounds,
-          // Load UI state with defaults for missing values
+          fundingRounds: parsed.fundingRounds ?? [],
           timeHorizon: parsed.timeHorizon ?? OPPORTUNITY_COST_DEFAULTS.timeHorizonYears,
           alternativeRate: parsed.alternativeRate ?? OPPORTUNITY_COST_DEFAULTS.alternativeReturnRate,
           customExitValuation: parsed.customExitValuation ?? 1_000_000_000,
@@ -137,6 +80,7 @@ function loadFromStorage(): StoredState | null {
           taxInfoExpanded: parsed.taxInfoExpanded ?? false,
           taxInfoAdvanced: parsed.taxInfoAdvanced ?? false,
           roundModelingAdvanced: parsed.roundModelingAdvanced ?? false,
+          customExitScenarios: parsed.customExitScenarios ?? null,
         };
       }
     }
@@ -181,10 +125,11 @@ function getInitialState(): StoredState {
     taxInfoExpanded: false,
     taxInfoAdvanced: false,
     roundModelingAdvanced: false,
+    customExitScenarios: null,
   };
 }
 
-export function OptionsCalculator() {
+export function OptionsSimulator() {
   const [initialState] = useState(getInitialState);
   const [inputs, setInputs] = useState<OptionsInput>(initialState.inputs);
   const [fundingRounds, setFundingRounds] = useState<FundingRound[]>(initialState.fundingRounds);
@@ -197,6 +142,8 @@ export function OptionsCalculator() {
   const [taxInfoExpanded, setTaxInfoExpanded] = useState(initialState.taxInfoExpanded);
   const [taxInfoAdvanced, setTaxInfoAdvanced] = useState(initialState.taxInfoAdvanced);
   const [roundModelingAdvanced, setRoundModelingAdvanced] = useState(initialState.roundModelingAdvanced);
+  const [customExitScenarios, setCustomExitScenarios] = useState<CustomExitScenario[] | null>(initialState.customExitScenarios ?? null);
+  const [exitEditorOpen, setExitEditorOpen] = useState(false);
   const [importModalOpen, setImportModalOpen] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [importError, setImportError] = useState<string | null>(null);
@@ -215,8 +162,9 @@ export function OptionsCalculator() {
       taxInfoExpanded,
       taxInfoAdvanced,
       roundModelingAdvanced,
+      customExitScenarios,
     });
-  }, [inputs, fundingRounds, timeHorizon, alternativeRate, customExitValuation, includeOpportunityCost, includeTaxInCost, showFormula, taxInfoExpanded, taxInfoAdvanced, roundModelingAdvanced]);
+  }, [inputs, fundingRounds, timeHorizon, alternativeRate, customExitValuation, includeOpportunityCost, includeTaxInCost, showFormula, taxInfoExpanded, taxInfoAdvanced, roundModelingAdvanced, customExitScenarios]);
 
   const handleReset = () => {
     setInputs(DEFAULT_INPUTS);
@@ -230,6 +178,7 @@ export function OptionsCalculator() {
     setTaxInfoExpanded(false);
     setTaxInfoAdvanced(false);
     setRoundModelingAdvanced(false);
+    setCustomExitScenarios(null);
     clearStorage();
   };
 
@@ -246,12 +195,13 @@ export function OptionsCalculator() {
       taxInfoExpanded,
       taxInfoAdvanced,
       roundModelingAdvanced,
+      customExitScenarios,
     };
     const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'options-calculator.json';
+    a.download = 'options-simulator.json';
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -274,6 +224,7 @@ export function OptionsCalculator() {
           setTaxInfoExpanded(parsed.taxInfoExpanded ?? false);
           setTaxInfoAdvanced(parsed.taxInfoAdvanced ?? false);
           setRoundModelingAdvanced(parsed.roundModelingAdvanced ?? false);
+          setCustomExitScenarios(parsed.customExitScenarios ?? null);
           setImportModalOpen(false);
         } else {
           setImportError('Invalid file format: missing or invalid inputs');
@@ -317,11 +268,19 @@ export function OptionsCalculator() {
     [fundingRounds]
   );
 
-  // Get stage-adjusted exit scenarios
-  const exitScenarios = useMemo(
+  // Get stage-adjusted exit scenarios (used as defaults and for reset)
+  const stageAdjustedScenarios = useMemo(
     () => getStageAdjustedExitScenarios(companyStage),
     [companyStage]
   );
+
+  // Convert custom scenarios to ExitScenario format, or use stage-adjusted defaults
+  const exitScenarios = useMemo(() => {
+    if (customExitScenarios) {
+      return customScenariosToExitScenarios(customExitScenarios, inputs.companyValuation);
+    }
+    return stageAdjustedScenarios;
+  }, [customExitScenarios, inputs.companyValuation, stageAdjustedScenarios]);
 
   const results = useMemo(
     () => calculateAllResultsWithFundingRounds(inputs, fundingRounds, exitScenarios),
@@ -346,7 +305,7 @@ export function OptionsCalculator() {
       {/* Header */}
       <div className="mb-4 text-center relative">
         <h1 className="text-2xl font-bold tracking-tight">
-          Options Exercise Calculator
+          Options Exercise Simulator
         </h1>
         <p className="text-sm text-muted-foreground">
           Should you exercise your startup options?
@@ -427,6 +386,8 @@ export function OptionsCalculator() {
             preferredRounds={preferredRounds}
             exitScenarios={exitScenarios}
             companyStage={companyStage}
+            hasCustomExitScenarios={customExitScenarios !== null}
+            onEditExitScenarios={() => setExitEditorOpen(true)}
             timeHorizon={timeHorizon}
             onTimeHorizonChange={setTimeHorizon}
             alternativeRate={alternativeRate}
@@ -491,13 +452,23 @@ export function OptionsCalculator() {
       <References />
     </div>
 
+    {/* Exit Scenarios Editor */}
+    <ExitScenariosEditor
+      customScenarios={customExitScenarios}
+      onSave={setCustomExitScenarios}
+      onReset={() => setCustomExitScenarios(null)}
+      open={exitEditorOpen}
+      onOpenChange={setExitEditorOpen}
+      companyStage={companyStage}
+    />
+
     {/* Import Modal */}
     <Dialog open={importModalOpen} onOpenChange={setImportModalOpen}>
       <DialogContent className="sm:max-w-sm p-4">
         <DialogHeader className="space-y-1">
           <DialogTitle className="text-base">Import Configuration</DialogTitle>
           <DialogDescription className="text-xs">
-            Restore calculator values from a JSON file.
+            Restore simulator values from a JSON file.
           </DialogDescription>
         </DialogHeader>
         <div

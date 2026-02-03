@@ -33,7 +33,7 @@ export function JargonTerm({ termKey, children, className }: JargonTermProps) {
           {children ?? definition.term}
         </span>
       </TooltipTrigger>
-      <TooltipContent side="top" className="max-w-[280px]">
+      <TooltipContent side="top" className="max-w-70">
         <p className="font-medium mb-1">{definition.term}</p>
         {renderDefinition(definition.definition)}
       </TooltipContent>

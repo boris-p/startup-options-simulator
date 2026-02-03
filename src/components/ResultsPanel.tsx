@@ -4,6 +4,7 @@ import {
   formatCurrency,
   formatPercent,
   formatOwnership,
+  roundPercentages,
 } from '@/lib/calculations';
 import { DEFAULT_EXIT_SCENARIOS } from '@/lib/defaults';
 import { PayoutChart } from './PayoutChart';
@@ -14,6 +15,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
+import { Settings2 } from 'lucide-react';
 
 interface ResultsPanelProps {
   results: CalculatedResults;
@@ -22,6 +24,8 @@ interface ResultsPanelProps {
   preferredRounds?: PreferredRound[];
   exitScenarios?: ExitScenario[];
   companyStage?: CompanyStage;
+  hasCustomExitScenarios: boolean;
+  onEditExitScenarios: () => void;
   timeHorizon: number;
   onTimeHorizonChange: (years: number) => void;
   alternativeRate: number;
@@ -42,6 +46,8 @@ export function ResultsPanel({
   preferredRounds = [],
   exitScenarios,
   companyStage,
+  hasCustomExitScenarios,
+  onEditExitScenarios,
   timeHorizon,
   onTimeHorizonChange,
   alternativeRate,
@@ -87,6 +93,12 @@ export function ResultsPanel({
     [scenarioBreakdown]
   );
 
+  // Round display percentages so they sum to exactly 100%
+  const roundedProbPcts = useMemo(
+    () => roundPercentages(scenarioBreakdown.map(s => s.probability * 100)),
+    [scenarioBreakdown]
+  );
+
   // Format valuation for display (e.g., $50M)
   const formatValuation = (value: number) => {
     if (value >= 1_000_000_000) {
@@ -103,7 +115,7 @@ export function ResultsPanel({
       <h2 className="text-sm font-semibold">Your Numbers</h2>
 
       {/* All stats in one row */}
-      <div className="grid grid-cols-4 gap-3 items-start">
+      <div className="grid grid-cols-[1fr_1fr_1fr_auto] gap-3 items-start">
         <div>
           <p className="text-[10px] text-muted-foreground uppercase tracking-wide h-4"><JargonTerm termKey="exercise-cost">Cost</JargonTerm></p>
           <p className="text-base font-semibold">{formatCurrency(results.exerciseCost)}</p>
@@ -130,46 +142,66 @@ export function ResultsPanel({
           </p>
         </div>
         <div>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <p className="text-[10px] text-muted-foreground uppercase tracking-wide h-4 cursor-help border-b border-dotted border-muted-foreground/50">
-                Expected Value
-              </p>
-            </TooltipTrigger>
-            <TooltipContent side="bottom" className="text-xs max-w-75">
-              <p className="font-medium mb-1">Probability-weighted outcome</p>
-              <p className="text-[10px] text-muted-foreground mb-1.5">
-                {ownershipPercent.toFixed(3)}% of {formatValuation(companyValuation)}
-                {companyStage && (
-                  <span className="block mt-0.5">
-                    Stage: <span className="font-medium">{companyStage}</span> (adjusts failure probability)
-                  </span>
-                )}
-              </p>
-              <div className="text-muted-foreground space-y-0.5 text-[10px]">
-                {scenarioBreakdown.map((s) => (
-                  <div key={s.name} className="flex justify-between gap-2">
-                    <span>{(s.probability * 100).toFixed(1)}% × {s.multiple}x exit</span>
-                    <span>{formatCurrency(s.weighted)}</span>
+          <div className="flex items-center gap-1">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wide h-4 whitespace-nowrap cursor-help border-b border-dotted border-muted-foreground/50 transition-colors hover:text-foreground">
+                  Expected Value
+                </p>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="text-xs max-w-75">
+                <p className="font-medium mb-1">Probability-weighted outcome</p>
+                <p className="text-[10px] text-muted-foreground mb-1.5">
+                  {ownershipPercent.toFixed(3)}% of {formatValuation(companyValuation)}
+                  {companyStage && (
+                    <span className="block mt-0.5">
+                      Stage: <span className="font-medium">{companyStage}</span> (adjusts failure probability)
+                    </span>
+                  )}
+                  {hasCustomExitScenarios && (
+                    <span className="block mt-0.5 text-blue-500">
+                      Using custom probabilities
+                    </span>
+                  )}
+                </p>
+                <div className="text-muted-foreground space-y-0.5 text-[10px]">
+                  {scenarioBreakdown.map((s, i) => (
+                    <div key={s.name} className="flex justify-between gap-2">
+                      <span>{roundedProbPcts[i].toFixed(1)}% × {s.multiple}x exit</span>
+                      <span>{formatCurrency(s.weighted)}</span>
+                    </div>
+                  ))}
+                </div>
+                <div className="mt-1.5 pt-1.5 border-t text-[10px]">
+                  <div className="flex justify-between">
+                    <span>Weighted total</span>
+                    <span>{formatCurrency(totalWeighted)}</span>
                   </div>
-                ))}
-              </div>
-              <div className="mt-1.5 pt-1.5 border-t text-[10px]">
-                <div className="flex justify-between">
-                  <span>Weighted total</span>
-                  <span>{formatCurrency(totalWeighted)}</span>
+                  <div className="flex justify-between">
+                    <span>− Exercise cost</span>
+                    <span>{formatCurrency(results.exerciseCost)}</span>
+                  </div>
+                  <div className="flex justify-between font-medium text-foreground mt-0.5">
+                    <span>Expected Value</span>
+                    <span>{formatCurrency(results.expectedValue)}</span>
+                  </div>
                 </div>
-                <div className="flex justify-between">
-                  <span>− Exercise cost</span>
-                  <span>{formatCurrency(results.exerciseCost)}</span>
-                </div>
-                <div className="flex justify-between font-medium text-foreground mt-0.5">
-                  <span>Expected Value</span>
-                  <span>{formatCurrency(results.expectedValue)}</span>
-                </div>
-              </div>
-            </TooltipContent>
-          </Tooltip>
+              </TooltipContent>
+            </Tooltip>
+            <button
+              type="button"
+              onClick={onEditExitScenarios}
+              className={cn(
+                'transition-colors',
+                hasCustomExitScenarios
+                  ? 'text-blue-500 hover:text-blue-600'
+                  : 'text-muted-foreground hover:text-foreground'
+              )}
+              aria-label="Customize exit probabilities"
+            >
+              <Settings2 className="h-3 w-3" />
+            </button>
+          </div>
           <p className={cn(
             'text-base font-semibold',
             expectedValueVariant === 'positive' && 'text-green-600',
@@ -177,6 +209,9 @@ export function ResultsPanel({
           )}>
             {formatCurrency(results.expectedValue)}
           </p>
+          {hasCustomExitScenarios && (
+            <p className="text-[10px] text-blue-500">Custom scenarios</p>
+          )}
         </div>
       </div>
 

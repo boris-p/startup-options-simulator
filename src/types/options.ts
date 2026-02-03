@@ -1,4 +1,4 @@
-// Types for the Options Exercise Calculator
+// Types for the Options Exercise Simulator
 
 export type OptionType = 'ISO' | 'NSO';
 
@@ -29,6 +29,13 @@ export interface ExitScenario {
   name: string;
   multiple: number;
   probability: number; // For expected value calculation
+}
+
+/** User-defined exit scenario using absolute exit valuations */
+export interface CustomExitScenario {
+  name: string; // Optional label (can be empty)
+  exitValue: number; // Absolute company exit valuation (e.g. 100_000_000 for $100M)
+  probability: number; // Decimal (0.75 = 75%)
 }
 
 export interface TaxCalculation {
@@ -99,7 +106,7 @@ export interface WaterfallResult {
   employeePayout: number; // Final employee payout after waterfall
 }
 
-export interface CalculatorState {
+export interface SimulatorState {
   inputs: OptionsInput;
   dilutionRounds: DilutionRound[];
   preferredRounds: PreferredRound[];

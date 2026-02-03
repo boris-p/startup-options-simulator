@@ -6,7 +6,7 @@ import App from './App.tsx'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <BrowserRouter basename="/startup-options-calculator">
+    <BrowserRouter basename="/startup-options-simulator">
       <App />
     </BrowserRouter>
   </StrictMode>,

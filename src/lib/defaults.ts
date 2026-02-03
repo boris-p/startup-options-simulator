@@ -135,7 +135,7 @@ export const EXIT_VALUATION_SLIDER_CONFIG = {
 };
 
 /**
- * Default input values for the calculator
+ * Default input values for the simulator
  */
 export const DEFAULT_INPUTS: OptionsInput = {
   numberOfOptions: 10000,

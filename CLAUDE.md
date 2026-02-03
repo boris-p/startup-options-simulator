@@ -1,7 +1,7 @@
 # Project Guidelines
 
 ## Overview
-Startup Options Calculator - a tool for startup employees that models exercise costs, taxes (ISO vs NSO), dilution from funding rounds, liquidation preferences, and probability-weighted expected value. The goal is to help employees make informed decisions about their equity compensation through transparent, well-sourced financial modeling.
+Startup Options Simulator - a tool for startup employees that models exercise costs, taxes (ISO vs NSO), dilution from funding rounds, liquidation preferences, and probability-weighted expected value. The goal is to help employees make informed decisions about their equity compensation through transparent, well-sourced financial modeling.
 
 ## Package Manager
 Always use `yarn` for all package management commands:
@@ -17,7 +17,7 @@ Do NOT use npm commands.
 ```
 src/
 ├── components/
-│   ├── OptionsCalculator.tsx   # Main orchestrator, manages all state
+│   ├── OptionsSimulator.tsx   # Main orchestrator, manages all state
 │   ├── OptionsInputs.tsx       # Input controls (sliders, selects)
 │   ├── ResultsPanel.tsx        # Displays calculated results
 │   ├── RoundModeling.tsx       # Funding round dilution/liquidation
@@ -71,7 +71,7 @@ When adding new financial data:
 | Financial term definitions | `src/data/jargon.ts` |
 | Data sources | `src/data/references.ts` |
 | Type definitions | `src/types/options.ts` |
-| Main component | `src/components/OptionsCalculator.tsx` |
+| Main component | `src/components/OptionsSimulator.tsx` |
 | Jargon tooltips | `src/components/JargonTerm.tsx` |
 | Glossary display | `src/components/Glossary.tsx` |
 | Citation links | `src/components/RefLink.tsx` |

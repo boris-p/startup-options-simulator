@@ -1,12 +1,12 @@
-# Startup Options Calculator
+# Startup Options Simulator
 
-A free, open-source calculator to help startup employees understand their equity compensation. Model exercise costs, taxes (ISO vs NSO), dilution from funding rounds, liquidation preferences, and probability-weighted expected value.
+A free, open-source simulator to help startup employees understand their equity compensation. Model exercise costs, taxes (ISO vs NSO), dilution from funding rounds, liquidation preferences, and probability-weighted expected value.
 
-**[Try it live →](https://boris-p.github.io/startup-options-calculator/)**
+**[Try it live →](https://boris-p.github.io/startup-options-simulator/)**
 
 ## Purpose
 
-This calculator helps you develop intuition about startup equity by:
+This simulator helps you develop intuition about startup equity by:
 
 - Understanding the true cost of exercising options (not just strike price)
 - Comparing ISO vs NSO tax implications (AMT vs ordinary income + FICA)
@@ -18,7 +18,7 @@ This calculator helps you develop intuition about startup equity by:
 
 **This is NOT financial, tax, or legal advice.**
 
-- This calculator provides educational estimates only
+- This simulator provides educational estimates only
 - Tax calculations are simplified (e.g., uses ~28% AMT rate as an approximation)
 - Real-world situations involve many factors not modeled here
 - Always consult a qualified tax professional, financial advisor, or attorney for actual decisions
@@ -35,7 +35,7 @@ You join a Series A startup and receive an options grant:
 - **Current 409A FMV:** $5.00 per share
 - **Your ownership:** 0.1% (10,000 shares of 10M fully diluted)
 
-The calculator shows:
+The simulator shows:
 - **Exercise cost:** $10,000 (what you pay to buy the shares)
 - **Current value:** $50,000 (at today's FMV)
 - **Paper gain:** $40,000 (but you can't access this until an exit)
@@ -49,7 +49,7 @@ Same grant: 10,000 options with $4.00 spread ($5 FMV - $1 strike):
 - **ISO:** $40,000 counts as AMT income. May trigger ~$11,200 in Alternative Minimum Tax - and you owe this even though you received no cash.
 - **NSO:** $40,000 is ordinary income plus FICA taxes (~$15,800 at 32% bracket + 7.65% FICA, less if over SS wage cap).
 
-The calculator helps you compare which makes more sense for your situation.
+The simulator helps you compare which makes more sense for your situation.
 
 ### 3. Exit Scenario Modeling
 
@@ -71,7 +71,7 @@ All financial assumptions are grounded in authoritative sources:
 - **S&P 500 returns:** NYU Stern Damodaran historical data (~10% nominal since 1926)
 - **Tax rules:** IRS Section 409A, Alternative Minimum Tax guidance
 
-See the References section in the calculator for full citations with links.
+See the References section in the simulator for full citations with links.
 
 ## Development
 

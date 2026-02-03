@@ -2,6 +2,7 @@ import type {
   OptionsInput,
   DilutionRound,
   ExitScenario,
+  CustomExitScenario,
   CalculatedResults,
   ExitScenarioResult,
   OpportunityCostDataPoint,
@@ -206,7 +207,51 @@ export function calculateExpectedValue(
 }
 
 /**
- * Calculate all results for the calculator
+ * Round an array of percentages so they sum to exactly the target (default 100).
+ * Uses the largest-remainder method to distribute rounding error.
+ */
+export function roundPercentages(values: number[], decimals = 1, target = 100): number[] {
+  if (values.length === 0) return [];
+  const factor = Math.pow(10, decimals);
+  const floored = values.map(v => Math.floor(v * factor) / factor);
+  const remainders = values.map(v => v * factor - Math.floor(v * factor));
+  const diff = Math.round((target - floored.reduce((a, b) => a + b, 0)) * factor);
+  const indices = remainders.map((_, i) => i).sort((a, b) => remainders[b] - remainders[a]);
+  const result = [...floored];
+  for (let i = 0; i < diff; i++) {
+    result[indices[i]] = Math.round((result[indices[i]] + 1 / factor) * factor) / factor;
+  }
+  return result;
+}
+
+/**
+ * Validate that exit scenario probabilities sum to 100% (within tolerance)
+ */
+export function validateExitScenarioProbabilities(scenarios: { probability: number }[]): {
+  total: number;
+  isValid: boolean;
+} {
+  const total = scenarios.reduce((sum, s) => sum + s.probability, 0);
+  return { total, isValid: Math.abs(total - 1.0) < 0.001 };
+}
+
+/**
+ * Convert custom exit scenarios (absolute exit valuations) to ExitScenario format (multiples)
+ * multiple = exitValue / companyValuation
+ */
+export function customScenariosToExitScenarios(
+  customScenarios: CustomExitScenario[],
+  companyValuation: number
+): ExitScenario[] {
+  return customScenarios.map((cs) => ({
+    name: cs.name || formatCurrency(cs.exitValue),
+    multiple: companyValuation > 0 ? cs.exitValue / companyValuation : 0,
+    probability: cs.probability,
+  }));
+}
+
+/**
+ * Calculate all results for the simulator
  */
 export function calculateAllResults(
   inputs: OptionsInput,
@@ -754,7 +799,7 @@ export function calculateOpportunityCostComparison(
  * Derive company stage from funding rounds
  * Uses the most recent (last) round to determine stage
  *
- * If no rounds: assume Seed (reasonable default for someone using this calculator)
+ * If no rounds: assume Seed (reasonable default for someone using this simulator)
  * Note: "Pre-Seed" would be more conservative but most users with options
  * are likely at least seed-stage
  *

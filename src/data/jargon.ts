@@ -174,7 +174,7 @@ export const JARGON: Record<string, JargonDefinition> = {
       '• 60% of startups fail between Pre-Seed and Series A\n' +
       '• 35% of Series A companies fail before Series B\n' +
       '• Only ~1% fail after reaching Series C\n\n' +
-      'The calculator automatically adjusts probabilities based on funding rounds you model.\n\n' +
+      'The simulator automatically adjusts probabilities based on funding rounds you model.\n\n' +
       'Sources: SPDLoad 2025, Embroker, Harvard Business School',
     category: 'analysis',
   },

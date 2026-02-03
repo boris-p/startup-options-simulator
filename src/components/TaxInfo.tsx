@@ -257,12 +257,12 @@ export function TaxInfo({
               </Label>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <span className="text-[10px] text-muted-foreground cursor-help underline decoration-dotted">
+                  <span className="text-[10px] text-muted-foreground cursor-help border-b border-dotted border-muted-foreground/50 transition-colors hover:text-foreground">
                     (for <JargonTerm termKey="ss-wage-cap" className="text-[10px]">SS cap</JargonTerm> calculation)
                   </span>
                 </TooltipTrigger>
-                <TooltipContent side="top" className="max-w-xs text-xs">
-                  <p>
+                <TooltipContent side="top" className="max-w-70">
+                  <p className="text-muted-foreground leading-relaxed">
                     Social Security tax (6.2%) is capped at $176,100 for 2025.
                     If your salary already exceeds this, only Medicare (1.45%) applies to your options spread.
                   </p>
